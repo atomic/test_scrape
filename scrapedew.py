@@ -51,18 +51,14 @@ class MainDownloader(object):
             self.contents[path] = content
             return content
 
-    def getVillagersName(self):
+    def get_villagers_name(self):
         from tabulate import tabulate
         # get list of villagers from http://stardewvalleywiki.com/List_of_All_Gifts
         page = self.download('List_of_All_Gifts')
         # debug
         f = open('page_result.html', 'w')
         soup = BeautifulSoup(page, "html.parser")
-        # print(soup.prettify(), end="", file=f)
-        # print(soup.contents)
         all_tr = soup.find_all('tr')
-        print(all_tr[1].a)
-        # print(tabulate(all_tr.contents), end="", file=f)
 
         villagers = []
         for tr in soup.find_all('tr'):
@@ -71,28 +67,7 @@ class MainDownloader(object):
                 villagers.append(first_column.find('a')['title'])
         return villagers
 
-    @staticmethod
-    def getSeasonalSchedule(soupObject, season_name):
-        """
-        (NOT WORKING)
-        Static Helper function to get schedule dictionary for a season
-        soupObject :  result of BeautifulSoup(page_content)
-        season_name:  Spring,Summer,Fall,Winter, etc?
-        """
-        # get spring
-        header = soupObject.find("a", {"title": season_name})
-        table = header.parent.parent.parent.parent.next_sibling.next_sibling.td
-        # print(spring_table.td)
-        # A lot of DOM traversal, gotta look at the page
-        # bug, why previous sibling is twice?
-        schedule = {}
-        for wkday in table.findAll("table"):
-            day = wkday.previous_sibling.previous_sibling.get_text()
-            day = day.rstrip('\r\n')
-            schedule[day] = wkday
-        return schedule
-
-    def getVillagerSchedule(self, name):
+    def get_villager_schedule(self, name):
         """
         Given a villager return a dictionary of schedule based on season
         {
@@ -105,6 +80,8 @@ class MainDownloader(object):
             "Summer" : { ... }
             ...
         }
+        :param name: name of NPC
+        :return:
         """
         page = self.download(name)
         soup = BeautifulSoup(page, "html.parser")
@@ -120,7 +97,8 @@ class MainDownloader(object):
             if tr.select("big > span > a[href]"):
                 # have to be specific, there are other NPC page that uses <big>
                 tr_season.append(tr)
-        logger.info('season length found : ' + str(len(tr_season)))  # debug
+        # DEBUG
+        logger.info("season length(%s): %d" %(name,len(tr_season)))
 
         schedule = {}
         for tr in tr_season:
@@ -145,15 +123,23 @@ if __name__ == '__main__':
     # print(main_content, end="", file=f)
 
     # Testing get all NPC names
-    # npc = downloader.getVillagersName()
-    # print(npc)
+    villagers = downloader.get_villagers_name()
 
     # Testing get NPC schedule(Elliot)
-    # note: many exceptions in the site
-    elliot_sched = downloader.getVillagerSchedule('Elliott')
-    # elliot_sched = downloader.getVillagerSchedule('Emily')
+    # elliot_sched = downloader.get_villager_schedule('Harvey')
+    # elliot_sched = downloader.get_villager_schedule('Emily')
     # print(elliot_sched)
 
+    schedules = {}
+    for npc in villagers:
+        try:
+            schedules[npc] = downloader.get_villager_schedule(npc)
+        except Exception as e:
+            logger.error('Schedule error: ' + npc) # so far, no error
+            # some NPC has no schedule from the wiki
+
+    print(schedules)
+    print('asd')
 '''
 //a[@title="Alex"]/text()
 
